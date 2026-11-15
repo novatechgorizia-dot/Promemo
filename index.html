@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Promemo – Le tue scadenze</title>
+<meta name="description" content="Promemoria delle tue scadenze: SIM, fibra, luce, gas, assicurazione, bollo. I dati restano sul tuo telefono.">
+<meta name="theme-color" content="#0f6b6b" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14171c" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Promemo">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4f5f7;
+    --card:#ffffff;
+    --ink:#15181d;
+    --ink-2:#5b6472;
+    --ink-3:#8b94a3;
+    --line:#e3e6ec;
+    --accent:#0f6b6b;
+    --accent-soft:#e3f1f0;
+    --red:#c6372c;
+    --red-soft:#fbe9e7;
+    --amber:#9a6200;
+    --amber-soft:#fdf0d9;
+    --green:#1d6b3f;
+    --green-soft:#e4f3ea;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(20,25,35,.06), 0 6px 18px rgba(20,25,35,.05);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#14171c; --card:#1c2026; --ink:#eef1f5; --ink-2:#a7b0bd; --ink-3:#7c8694;
+      --line:#2b3138; --accent:#4fd1c5; --accent-soft:#1b2f30;
+      --red:#ff9b90; --red-soft:#2e1d1b; --amber:#f0bc6a; --amber-soft:#2d2415;
+      --green:#86d9a6; --green-soft:#17281e;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 18px rgba(0,0,0,.25);
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    font-size:16px; line-height:1.45; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:560px;margin:0 auto;padding:18px 16px 118px;padding-bottom:calc(118px + env(safe-area-inset-bottom))}
+
+  header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+  .brand{display:flex;flex-direction:column;gap:2px;min-width:0}
+  h1{font-size:22px;line-height:1.2;margin:0;font-weight:700;letter-spacing:-.02em}
+  .brand small{color:var(--ink-3);font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:uppercase}
+  #install{
+    display:none;align-items:center;gap:6px;background:var(--accent-soft);color:var(--accent);
+    border:none;font:inherit;font-size:13px;font-weight:600;padding:8px 13px;border-radius:999px;
+    white-space:nowrap;cursor:pointer
+  }
+  #install.show{display:inline-flex}
+
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:10px 11px}
+  .stat b{display:block;font-size:21px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+  .stat span{display:block;font-size:11px;color:var(--ink-3);margin-top:3px;line-height:1.25}
+  .stat.urgent b{color:var(--red)}
+
+  .banner{
+    border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;font-size:14px;
+    background:var(--amber-soft);color:var(--amber);border:1px solid rgba(154,98,0,.18)
+  }
+  .banner.info{background:var(--accent-soft);color:var(--accent);border-color:rgba(15,107,107,.16)}
+  .banner strong{font-weight:600}
+  .banner button{
+    background:none;border:none;color:inherit;font:inherit;font-weight:600;
+    text-decoration:underline;cursor:pointer;padding:0;margin-left:4px
+  }
+
+  .search{position:relative;margin-bottom:10px;display:none}
+  .search.show{display:block}
+  .search input{padding-right:38px}
+  .search button{
+    position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;
+    color:var(--ink-3);font:inherit;font-size:18px;cursor:pointer;padding:4px 8px;line-height:1
+  }
+
+  .chips{display:flex;gap:7px;overflow-x:auto;padding:2px 0 12px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{
+    flex:0 0 auto;background:var(--card);border:1px solid var(--line);color:var(--ink-2);
+    font:inherit;font-size:13px;font-weight:500;padding:7px 13px;border-radius:999px;cursor:pointer
+  }
+  .chip[aria-pressed="true"]{background:var(--ink);color:var(--card);border-color:var(--ink)}
+
+  .group-label{font-size:12px;font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;margin:18px 2px 8px}
+  .group-label:first-child{margin-top:2px}
+
+  .item{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:13px 14px;margin-bottom:10px;box-shadow:var(--shadow)
+  }
+  .item.done{opacity:.55}
+  .item-head{display:flex;gap:10px;align-items:flex-start}
+  .emoji{font-size:20px;line-height:1.3;flex:0 0 auto}
+  .item-main{flex:1;min-width:0}
+  .item-title{font-weight:600;font-size:15.5px;letter-spacing:-.01em;word-break:break-word}
+  .item-meta{font-size:13px;color:var(--ink-2);margin-top:2px}
+  .pill{
+    flex:0 0 auto;font-size:12px;font-weight:600;padding:5px 9px;border-radius:9px;white-space:nowrap;
+    text-align:center;line-height:1.2
+  }
+  .pill.red{background:var(--red-soft);color:var(--red)}
+  .pill.amber{background:var(--amber-soft);color:var(--amber)}
+  .pill.green{background:var(--green-soft);color:var(--green)}
+  .pill.grey{background:var(--bg);color:var(--ink-3)}
+  .note{font-size:13px;color:var(--ink-2);margin-top:8px;white-space:pre-wrap;word-break:break-word}
+  .rimod{
+    margin-top:9px;font-size:13px;background:var(--amber-soft);color:var(--amber);
+    padding:8px 10px;border-radius:10px;line-height:1.35
+  }
+  .actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
+  .btn{
+    font:inherit;font-size:13px;font-weight:600;border-radius:9px;padding:7px 11px;cursor:pointer;
+    background:var(--bg);border:1px solid var(--line);color:var(--ink-2);text-decoration:none;
+    display:inline-flex;align-items:center;gap:5px
+  }
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.danger{color:var(--red)}
+  .btn.confirm{background:var(--red);border-color:var(--red);color:#fff}
+  .btn:disabled{opacity:.5;cursor:default}
+
+  .empty{
+    background:var(--card);border:1px dashed var(--line);border-radius:var(--radius);
+    padding:28px 20px;text-align:center;color:var(--ink-2);font-size:14px
+  }
+
+  .fab{
+    position:fixed;left:50%;transform:translateX(-50%);z-index:40;
+    bottom:calc(20px + env(safe-area-inset-bottom));
+    background:var(--accent);color:#fff;border:none;border-radius:999px;
+    font:inherit;font-size:15px;font-weight:600;padding:14px 26px;cursor:pointer;
+    box-shadow:0 6px 20px rgba(15,107,107,.35)
+  }
+
+  details.tools{margin-top:14px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px}
+  details.tools summary{cursor:pointer;font-size:14px;font-weight:600;color:var(--ink-2)}
+  details.tools p{font-size:13px;color:var(--ink-2)}
+  details.tools .hint{margin-bottom:4px}
+  textarea.backup{
+    width:100%;min-height:92px;margin-top:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:12px;padding:10px;border-radius:10px;border:1px solid var(--line);
+    background:var(--bg);color:var(--ink);resize:vertical
+  }
+
+  .sheet-bg{
+    position:fixed;inset:0;background:rgba(10,14,20,.5);z-index:50;display:none;
+    align-items:flex-end;justify-content:center;overflow-y:auto
+  }
+  .sheet-bg.open{display:flex}
+  .sheet{
+    background:var(--card);width:100%;max-width:560px;border-radius:18px 18px 0 0;
+    padding:18px 16px calc(24px + env(safe-area-inset-bottom));margin-top:auto
+  }
+  .sheet h2{margin:0 0 14px;font-size:18px;font-weight:700;letter-spacing:-.02em}
+  label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-2);margin:12px 0 5px}
+  input,select,textarea{
+    width:100%;font:inherit;font-size:16px;padding:11px 12px;border-radius:10px;
+    border:1px solid var(--line);background:var(--bg);color:var(--ink)
+  }
+  textarea{min-height:64px;resize:vertical}
+  .row{display:flex;gap:10px}
+  .row>div{flex:1;min-width:0}
+  .hint{font-size:12px;color:var(--ink-3);margin-top:5px;line-height:1.35}
+  .sheet-actions{display:flex;gap:10px;margin-top:20px}
+  .sheet-actions .btn{flex:1;justify-content:center;padding:13px;font-size:15px}
+  .err{color:var(--red);font-size:13px;margin-top:12px;display:none}
+  .err.show{display:block}
+  .calpanel{
+    display:flex;flex-wrap:wrap;gap:7px;margin-top:10px;padding:10px;
+    background:var(--bg);border-radius:10px
+  }
+  .calpanel .hint{flex-basis:100%;margin:0 0 2px}
+
+  #toast{
+    position:fixed;left:50%;transform:translateX(-50%);z-index:60;
+    bottom:calc(80px + env(safe-area-inset-bottom));
+    background:var(--ink);color:var(--bg);border-radius:12px;padding:11px 14px;
+    font-size:14px;display:none;align-items:center;gap:12px;max-width:calc(100% - 32px);
+    box-shadow:0 8px 24px rgba(0,0,0,.25)
+  }
+  #toast.show{display:flex}
+  #toast button{
+    background:none;border:none;color:inherit;font:inherit;font-weight:700;
+    text-decoration:underline;cursor:pointer;padding:0;white-space:nowrap
+  }
+  footer{margin-top:24px;text-align:center;font-size:12px;color:var(--ink-3);line-height:1.5}
+  footer .owner{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Le mie scadenze</h1>
+      <small id="brand-name">Promemo</small>
+    </div>
+    <button type="button" id="install">Installa app</button>
+  </header>
+
+  <div class="stats">
+    <div class="stat urgent"><b id="s-urg">0</b><span>scadute o entro 7 giorni</span></div>
+    <div class="stat"><b id="s-30">0</b><span>nei prossimi 30 giorni</span></div>
+    <div class="stat"><b id="s-eur">—</b><span>spesa annua ricorrente</span></div>
+  </div>
+
+  <div id="demo-banner" class="banner info" hidden>
+    <strong>Queste sono tre voci di esempio.</strong> Eliminale e inserisci le tue.
+    <button type="button" id="clear-demo">Elimina gli esempi</button>
+  </div>
+
+  <div class="search" id="search-box">
+    <label for="q" class="sr-only" style="position:absolute;left:-9999px">Cerca</label>
+    <input id="q" type="search" placeholder="Cerca per nome, fornitore o nota" autocomplete="off">
+    <button type="button" id="q-clear" hidden aria-label="Cancella la ricerca">×</button>
+  </div>
+
+  <div class="chips" id="chips"></div>
+
+  <div id="list"></div>
+
+  <details class="tools" id="cal-tools">
+    <summary>Promemoria nel calendario</summary>
+    <p class="hint">Crea nel calendario del telefono un evento per ogni scadenza, con avvisi 60, 30, 15 e 7 giorni prima e il giorno stesso. Le spese che si ripetono diventano eventi ricorrenti.</p>
+    <div class="actions">
+      <button class="btn primary" id="cal-all">Aggiungi tutte al calendario</button>
+    </div>
+    <div class="hint" id="cal-all-msg"></div>
+  </details>
+
+  <details class="tools">
+    <summary>Backup dei dati</summary>
+    <p>I dati restano solo su questo telefono, in questo browser. Se cambi telefono o svuoti i dati del browser, si perdono. Scarica il backup o inviati il file: sul telefono nuovo apri l'app e premi “Ripristina da file”.</p>
+    <div class="actions">
+      <button class="btn primary" id="send-backup">Invia backup</button>
+      <button class="btn" id="dl-backup">Scarica backup</button>
+      <button class="btn" id="pick-backup">Ripristina da file</button>
+    </div>
+    <div class="hint" id="backup-msg"></div>
+    <input type="file" id="file-backup" accept="application/json,.json" hidden>
+    <details style="margin-top:12px">
+      <summary class="hint" style="cursor:pointer">Oppure copia e incolla il testo</summary>
+      <textarea class="backup" id="backup" readonly></textarea>
+      <div class="actions">
+        <button class="btn" id="copy-backup">Copia backup</button>
+      </div>
+      <textarea class="backup" id="restore" placeholder="Incolla qui un backup e premi Ripristina"></textarea>
+      <div class="actions">
+        <button class="btn" id="do-restore">Ripristina dal testo</button>
+      </div>
+      <div class="hint" id="restore-msg"></div>
+    </details>
+  </details>
+
+  <footer id="foot">I tuoi dati restano su questo telefono.</footer>
+</div>
+
+<button class="fab" id="add">+ Nuova scadenza</button>
+
+<div id="toast"><span id="toast-txt"></span><button type="button" id="toast-act"></button></div>
+
+<div class="sheet-bg" id="sheet-bg">
+  <form class="sheet" id="form" autocomplete="off" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <h2 id="sheet-title">Nuova scadenza</h2>
+    <input type="hidden" id="f-id">
+
+    <label for="f-nome">Cosa scade</label>
+    <input id="f-nome" placeholder="Es. SIM di Marco" maxlength="60">
+
+    <div class="row">
+      <div>
+        <label for="f-cat">Categoria</label>
+        <select id="f-cat"></select>
+      </div>
+      <div>
+        <label for="f-scad">Data scadenza</label>
+        <input id="f-scad" type="date">
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="f-forn">Fornitore</label>
+        <input id="f-forn" placeholder="Es. Iliad" maxlength="40">
+      </div>
+      <div>
+        <label for="f-imp">Importo €</label>
+        <input id="f-imp" type="text" inputmode="decimal" placeholder="9,99" maxlength="12">
+      </div>
+    </div>
+
+    <label for="f-per">Ogni quanto si ripete</label>
+    <select id="f-per"></select>
+
+    <label for="f-rim">Rimodulazione comunicata il (facoltativo)</label>
+    <input id="f-rim" type="date">
+    <div class="hint">Se il fornitore ti ha comunicato un aumento di prezzo, metti qui la data: l'app calcola entro quando puoi recedere senza penali (30 giorni).</div>
+
+    <label for="f-note">Note</label>
+    <textarea id="f-note" placeholder="Es. promo 9,99 bloccata 24 mesi" maxlength="300"></textarea>
+
+    <div class="err" id="form-err"></div>
+
+    <div class="sheet-actions">
+      <button type="button" class="btn" id="cancel">Annulla</button>
+      <button type="submit" class="btn primary">Salva</button>
+    </div>
+  </form>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* =========================================================
+     NOME E ASPETTO DELL'APP — si cambia solo qui.
+     Se cambi il nome, cambialo anche in manifest.webmanifest
+     (voci "name" e "short_name") e nel titolo della pagina.
+     ========================================================= */
+  var APP = {
+    nome: 'Promemo',
+    piede: 'I tuoi dati restano su questo telefono.',
+    // proprietario dell'app, mostrato in fondo alla pagina
+    proprieta: [
+      'Promemo \u00e8 di propriet\u00e0 di Novatech di Porcino Danilo',
+      'Via G. Oberdan 1/E, 34170 Gorizia (GO)',
+      'P. IVA 02790750034'
+    ]
+  };
+
+  var KEY = 'promemo.scadenze.v1';
+  var KEY_OLD = 'novatech.scadenze.v1';   // dati della versione precedente
+
+  var CATS = {
+    mobile:{l:'Mobile', e:'📱'},
+    fibra:{l:'Fibra / Internet', e:'🌐'},
+    luce:{l:'Luce', e:'💡'},
+    gas:{l:'Gas', e:'🔥'},
+    assicurazione:{l:'Assicurazione', e:'🛡️'},
+    bollo:{l:'Bollo auto', e:'🚗'},
+    revisione:{l:'Revisione', e:'🔧'},
+    abbonamento:{l:'Abbonamento', e:'🔁'},
+    altro:{l:'Altro', e:'📌'}
+  };
+  var PER = {
+    una:{l:'Una volta sola', m:0},
+    mensile:{l:'Ogni mese', m:1},
+    bimestrale:{l:'Ogni 2 mesi', m:2},
+    trimestrale:{l:'Ogni 3 mesi', m:3},
+    semestrale:{l:'Ogni 6 mesi', m:6},
+    annuale:{l:'Ogni anno', m:12}
+  };
+
+  var items = [];
+  var filter = 'tutte';
+  var query = '';
+  var pendingDelete = null;
+  var showDone = false;
+  var openCal = null;
+  var undoData = null;
+  var toastTimer = null;
+
+  var $ = function(id){ return document.getElementById(id); };
+
+  /* ---------- date (solo giorno, nessuno scarto di fuso orario) ---------- */
+  function today(){ var n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
+  function parseDate(s){
+    if(!s) return null;
+    var p = String(s).split('-');
+    if(p.length !== 3) return null;
+    var y = +p[0], m = +p[1], g = +p[2];
+    if(!y || !m || !g) return null;
+    var d = new Date(y, m-1, g);
+    if(isNaN(d.getTime()) || d.getMonth() !== m-1 || d.getDate() !== g) return null;
+    return d;
+  }
+  function fmtISO(d){
+    var m = d.getMonth()+1, g = d.getDate();
+    return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(g<10?'0':'')+g;
+  }
+  function fmtIT(d){
+    if(!d) return '';
+    return d.toLocaleDateString('it-IT', {day:'numeric', month:'long', year:'numeric'});
+  }
+  function daysTo(d){ return Math.round((d - today()) / 86400000); }
+  function addMonths(d, n){
+    var day = d.getDate();
+    var r = new Date(d.getFullYear(), d.getMonth()+n, 1);
+    var last = new Date(r.getFullYear(), r.getMonth()+1, 0).getDate();
+    r.setDate(Math.min(day, last));
+    return r;
+  }
+  function addDays(d, n){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()+n); }
+
+  /* ---------- importo: accetta la virgola ---------- */
+  function parseImp(s){
+    if(s == null) return '';
+    s = String(s).trim().replace(/\s/g,'').replace(/€/g,'');
+    if(!s) return '';
+    s = s.replace(',', '.');
+    var v = parseFloat(s);
+    return (isNaN(v) || v < 0) ? null : Math.round(v*100)/100;
+  }
+  function impIT(v, dec){
+    return (+v).toLocaleString('it-IT', {minimumFractionDigits:dec, maximumFractionDigits:dec});
+  }
+
+  /* ---------- memoria del telefono ---------- */
+  function sane(list){
+    if(!Array.isArray(list)) return null;
+    var out = [];
+    list.forEach(function(x){
+      if(!x || typeof x !== 'object') return;
+      if(!x.nome || !parseDate(x.scad)) return;
+      out.push({
+        id: x.id || uid(),
+        nome: String(x.nome).slice(0,60),
+        cat: CATS[x.cat] ? x.cat : 'altro',
+        scad: x.scad,
+        forn: x.forn ? String(x.forn).slice(0,40) : '',
+        imp: (x.imp === '' || x.imp == null) ? '' : (parseImp(x.imp) === null ? '' : parseImp(x.imp)),
+        per: PER[x.per] ? x.per : 'una',
+        rim: parseDate(x.rim) ? x.rim : '',
+        note: x.note ? String(x.note).slice(0,300) : '',
+        fatta: !!x.fatta,
+        demo: !!x.demo
+      });
+    });
+    return out;
+  }
+  function load(){
+    var raw = null;
+    try{ raw = localStorage.getItem(KEY) || localStorage.getItem(KEY_OLD); }catch(e){}
+    if(raw){
+      try{
+        var got = sane(JSON.parse(raw));
+        if(got){ items = got; save(); return; }
+      }catch(e){}
+    }
+    items = demo();
+    save();
+  }
+  function save(){
+    try{ localStorage.setItem(KEY, JSON.stringify(items)); }catch(e){}
+  }
+  function demo(){
+    var t = today();
+    return [
+      {id:uid(), demo:true, nome:'SIM di Marco', cat:'mobile', forn:'Iliad', imp:9.99, per:'mensile', scad:fmtISO(addDays(t,6)), rim:'', note:'Promo bloccata'},
+      {id:uid(), demo:true, nome:'Bolletta luce casa', cat:'luce', forn:'', imp:78.40, per:'bimestrale', scad:fmtISO(addDays(t,21)), rim:'', note:''},
+      {id:uid(), demo:true, nome:'Bollo auto', cat:'bollo', forn:'', imp:212, per:'annuale', scad:fmtISO(addDays(t,96)), rim:'', note:''}
+    ];
+  }
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  /* ---------- calcoli ---------- */
+  function status(it){
+    var d = parseDate(it.scad);
+    if(it.fatta || !d) return {k:'grey', txt:'fatta', n:99999};
+    var n = daysTo(d);
+    if(n < 0) return {k:'red', txt:'scaduta da ' + (-n) + (n===-1?' giorno':' giorni'), n:n};
+    if(n === 0) return {k:'red', txt:'scade oggi', n:n};
+    if(n === 1) return {k:'red', txt:'domani', n:n};
+    if(n <= 7) return {k:'red', txt:'tra ' + n + ' giorni', n:n};
+    if(n <= 45) return {k:'amber', txt:'tra ' + n + ' giorni', n:n};
+    return {k:'green', txt:'tra ' + n + ' giorni', n:n};
+  }
+  function rimodInfo(it){
+    var r = parseDate(it.rim);
+    if(!r) return null;
+    var lim = addDays(r, 30);
+    return {lim:lim, n:daysTo(lim)};
+  }
+  function annuo(){
+    var tot = 0;
+    items.forEach(function(it){
+      if(it.fatta) return;
+      var m = PER[it.per] ? PER[it.per].m : 0;
+      if(m > 0 && it.imp) tot += (+it.imp) * (12/m);
+    });
+    return tot;
+  }
+  function euro(v){ return impIT(v, 0) + ' €'; }
+
+  /* =========================================================
+     PROMEMORIA NEL CALENDARIO (file .ics)
+     ========================================================= */
+  var ALERTS = [60, 30, 15, 7];
+  var inFrame = true;
+  try{ inFrame = window.self !== window.top; }catch(e){ inFrame = true; }
+
+  function pad(n){ return (n < 10 ? '0' : '') + n; }
+  function icsEsc(s){
+    return String(s == null ? '' : s)
+      .replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
+  }
+  function icsFold(line){
+    var out = [], max = 70;
+    while(line.length > max){ out.push(line.slice(0, max)); line = ' ' + line.slice(max); }
+    out.push(line);
+    return out;
+  }
+  function stampUTC(){
+    var n = new Date();
+    return n.getUTCFullYear() + pad(n.getUTCMonth()+1) + pad(n.getUTCDate()) + 'T'
+         + pad(n.getUTCHours()) + pad(n.getUTCMinutes()) + pad(n.getUTCSeconds()) + 'Z';
+  }
+  function rrule(it){
+    var m = PER[it.per] ? PER[it.per].m : 0;
+    if(!m) return null;
+    if(m === 12) return 'RRULE:FREQ=YEARLY';
+    return 'RRULE:FREQ=MONTHLY;INTERVAL=' + m;
+  }
+  // su una spesa che torna ogni mese un avviso a 60 giorni non ha senso
+  function alertsFor(it){
+    var m = PER[it.per] ? PER[it.per].m : 0;
+    if(!m) return ALERTS;
+    var giorni = m * 30;
+    return ALERTS.filter(function(g){ return g < giorni * 0.9; });
+  }
+  function vevent(it){
+    var d = parseDate(it.scad);
+    if(!d) return [];
+    var ymd = fmtISO(d).replace(/-/g,'');
+    var det = [];
+    if(it.forn) det.push('Fornitore: ' + it.forn);
+    if(it.imp !== '' && it.imp != null) det.push('Importo: ' + impIT(it.imp, 2) + ' EUR');
+    if(PER[it.per] && PER[it.per].m > 0) det.push('Si ripete: ' + PER[it.per].l.toLowerCase());
+    if(it.note) det.push(it.note);
+    det.push('Promemoria creato con ' + APP.nome + '.');
+    var L = [
+      'BEGIN:VEVENT',
+      'UID:' + it.id + '@promemo',
+      'DTSTAMP:' + stampUTC(),
+      'DTSTART:' + ymd + 'T090000',
+      'DTEND:' + ymd + 'T093000',
+      'SUMMARY:' + icsEsc('Scadenza: ' + it.nome),
+      'DESCRIPTION:' + icsEsc(det.join('\n'))
+    ];
+    var rr = rrule(it);
+    if(rr) L.push(rr);
+    alertsFor(it).forEach(function(g){
+      L.push('BEGIN:VALARM', 'ACTION:DISPLAY',
+             'DESCRIPTION:' + icsEsc('Tra ' + g + ' giorni scade: ' + it.nome),
+             'TRIGGER:-P' + g + 'D', 'END:VALARM');
+    });
+    L.push('BEGIN:VALARM', 'ACTION:DISPLAY',
+           'DESCRIPTION:' + icsEsc('Scade oggi: ' + it.nome),
+           'TRIGGER:PT0S', 'END:VALARM');
+    L.push('END:VEVENT');
+    return L;
+  }
+  function icsText(list){
+    var L = ['BEGIN:VCALENDAR', 'VERSION:2.0',
+             'PRODID:-//' + APP.nome + '//Scadenze//IT', 'CALSCALE:GREGORIAN'];
+    list.forEach(function(it){ L = L.concat(vevent(it)); });
+    L.push('END:VCALENDAR');
+    var out = [];
+    L.forEach(function(l){ icsFold(l).forEach(function(x){ out.push(x); }); });
+    return out.join('\r\n') + '\r\n';
+  }
+  function slug(s){
+    return String(s || '').toLowerCase()
+      .replace(/[àáâä]/g,'a').replace(/[èéêë]/g,'e').replace(/[ìíîï]/g,'i')
+      .replace(/[òóôö]/g,'o').replace(/[ùúûü]/g,'u')
+      .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+  }
+  function saveBlob(blob, nome){
+    try{
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = nome;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 6000);
+      return true;
+    }catch(e){ return false; }
+  }
+  function downloadIcs(list, nome){
+    return saveBlob(new Blob([icsText(list)], {type:'text/calendar;charset=utf-8'}), nome);
+  }
+
+  /* ---------- link a Google Calendar (usati dentro l'anteprima) ---------- */
+  function gcalUrl(it, day, title){
+    var d = day || parseDate(it.scad);
+    if(!d) return '#';
+    var a = fmtISO(d).replace(/-/g,'');
+    var b = fmtISO(addDays(d,1)).replace(/-/g,'');
+    var det = [];
+    if(it.forn) det.push('Fornitore: ' + it.forn);
+    if(it.imp !== '' && it.imp != null) det.push('Importo: ' + impIT(it.imp,2) + ' €');
+    if(it.note) det.push(it.note);
+    det.push('Promemoria creato con ' + APP.nome + '.');
+    return 'https://calendar.google.com/calendar/render?action=TEMPLATE'
+      + '&text=' + encodeURIComponent(title || ('Scadenza: ' + it.nome))
+      + '&dates=' + a + '/' + b
+      + '&details=' + encodeURIComponent(det.join('\n'));
+  }
+
+  function calPanel(it){
+    var p = el('div','calpanel');
+    var d = parseDate(it.scad);
+    if(!d) return p;
+
+    var b = el('button','btn primary','Aggiungi al calendario');
+    b.type = 'button';
+    b.onclick = function(){
+      var ok = downloadIcs([it], 'scadenza-' + (slug(it.nome) || 'promemoria') + '.ics');
+      toast(ok ? 'File del calendario creato: apri per aggiungere l\u2019evento.'
+               : 'Qui il download non \u00e8 permesso: usa i link di Google Calendar.');
+    };
+    p.appendChild(b);
+
+    var als = alertsFor(it);
+    p.appendChild(el('div','hint', 'Avvisi: ' + (als.length ? als.join(', ') + ' giorni prima e ' : '')
+      + 'il giorno stesso' + (PER[it.per] && PER[it.per].m > 0 ? ', ripetuto ' + PER[it.per].l.toLowerCase() : '') + '.'));
+
+    if(inFrame){
+      p.appendChild(el('div','hint','Oppure aggiungi un singolo avviso a Google Calendar:'));
+      [{n:0}].concat(als.map(function(g){ return {n:g}; })).forEach(function(o){
+        var day = addDays(d, -o.n);
+        if(daysTo(day) < 0) return;
+        var a = document.createElement('a');
+        a.className = 'btn';
+        a.textContent = (o.n ? o.n + ' giorni prima' : 'Il giorno stesso') + ' \u00B7 '
+                      + day.toLocaleDateString('it-IT', {day:'numeric', month:'short'});
+        a.href = gcalUrl(it, day, (o.n ? 'Tra ' + o.n + ' giorni scade: ' : 'Scade oggi: ') + it.nome);
+        a.target = '_blank'; a.rel = 'noopener';
+        p.appendChild(a);
+      });
+    }
+    return p;
+  }
+
+  /* =========================================================
+     BACKUP
+     ========================================================= */
+  function backupJson(){
+    return JSON.stringify({app:APP.nome, versione:1, data:fmtISO(today()), voci:items}, null, 1);
+  }
+  function backupName(){
+    return 'backup-' + slug(APP.nome) + '-' + fmtISO(today()) + '.json';
+  }
+  function backupFile(){
+    return new File([backupJson()], backupName(), {type:'application/json'});
+  }
+  function vociDa(testo){
+    var d = JSON.parse(testo);
+    var list = Array.isArray(d) ? d : (d && Array.isArray(d.voci) ? d.voci : null);
+    return sane(list);
+  }
+  function applica(list, msgEl){
+    if(!list || !list.length){
+      if(msgEl) msgEl.textContent = 'Il file non contiene scadenze valide.';
+      return false;
+    }
+    items = list;
+    pendingDelete = null; undoData = null;
+    save(); render();
+    if(msgEl) msgEl.textContent = 'Ripristinate ' + list.length + (list.length === 1 ? ' voce.' : ' voci.');
+    return true;
+  }
+
+  /* =========================================================
+     RENDER
+     ========================================================= */
+  var listEl = $('list'), chipsEl = $('chips');
+
+  function el(tag, cls, txt){
+    var n = document.createElement(tag);
+    if(cls) n.className = cls;
+    if(txt != null) n.textContent = txt;
+    return n;
+  }
+
+  function toast(txt, azione, fn){
+    var t = $('toast'), b = $('toast-act');
+    $('toast-txt').textContent = txt;
+    if(azione){ b.textContent = azione; b.hidden = false; b.onclick = function(){ hideToast(); fn(); }; }
+    else { b.hidden = true; b.onclick = null; }
+    t.classList.add('show');
+    if(toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, azione ? 7000 : 4000);
+  }
+  function hideToast(){
+    $('toast').classList.remove('show');
+    if(toastTimer){ clearTimeout(toastTimer); toastTimer = null; }
+  }
+
+  function matches(it){
+    if(!query) return true;
+    var q = query.toLowerCase();
+    return (it.nome + ' ' + (it.forn||'') + ' ' + (it.note||'') + ' ' + (CATS[it.cat]||CATS.altro).l)
+           .toLowerCase().indexOf(q) >= 0;
+  }
+
+  function gruppo(n){
+    if(n < 0) return 'Scadute';
+    if(n <= 7) return 'Entro 7 giorni';
+    if(n <= 30) return 'Entro un mese';
+    if(n <= 90) return 'Entro tre mesi';
+    return 'Più avanti';
+  }
+
+  function render(){
+    $('brand-name').textContent = APP.nome;
+    var ft = $('foot'); ft.innerHTML = '';
+    ft.appendChild(el('div', null, APP.piede));
+    var pr = el('div', 'owner');
+    APP.proprieta.forEach(function(r){ pr.appendChild(el('div', null, r)); });
+    ft.appendChild(pr);
+
+    var urg = 0, m30 = 0;
+    items.forEach(function(it){
+      if(it.fatta) return;
+      var s = status(it);
+      if(s.n <= 7) urg++;
+      else if(s.n <= 30) m30++;
+    });
+    $('s-urg').textContent = urg;
+    $('s-30').textContent = m30;
+    var a = annuo();
+    $('s-eur').textContent = a > 0 ? euro(a) : '—';
+    $('demo-banner').hidden = !items.some(function(it){ return it.demo; });
+    $('search-box').className = 'search' + (items.length > 6 ? ' show' : '');
+    $('q-clear').hidden = !query;
+    $('cal-tools').hidden = !items.some(function(it){ return !it.fatta; });
+
+    // filtri per categoria
+    var used = {};
+    items.forEach(function(it){ if(!it.fatta) used[it.cat] = true; });
+    if(filter !== 'tutte' && !used[filter]) filter = 'tutte';
+    chipsEl.innerHTML = '';
+    var keys = ['tutte'].concat(Object.keys(CATS).filter(function(k){ return used[k]; }));
+    chipsEl.hidden = keys.length < 3;
+    keys.forEach(function(k){
+      var b = el('button', 'chip', k === 'tutte' ? 'Tutte' : CATS[k].e + ' ' + CATS[k].l);
+      b.type = 'button';
+      b.setAttribute('aria-pressed', filter === k ? 'true' : 'false');
+      b.onclick = function(){ filter = k; pendingDelete = null; render(); };
+      chipsEl.appendChild(b);
+    });
+
+    // elenco
+    listEl.innerHTML = '';
+    var attive = items.filter(function(it){
+      return !it.fatta && (filter === 'tutte' || it.cat === filter) && matches(it);
+    });
+    attive.sort(function(x,y){ return status(x).n - status(y).n; });
+
+    if(!attive.length){
+      var e = el('div','empty');
+      e.appendChild(el('div', null,
+        query ? 'Nessun risultato per “' + query + '”.'
+              : (filter === 'tutte' ? 'Nessuna scadenza. Premi “+ Nuova scadenza” per iniziare.'
+                                    : 'Nessuna scadenza in questa categoria.')));
+      listEl.appendChild(e);
+    } else {
+      var last = null;
+      attive.forEach(function(it){
+        var g = gruppo(status(it).n);
+        if(g !== last){ listEl.appendChild(el('div','group-label', g)); last = g; }
+        listEl.appendChild(card(it));
+      });
+    }
+
+    var fatte = items.filter(function(it){ return it.fatta && matches(it); });
+    if(fatte.length){
+      var lab = el('div','group-label', (showDone ? '▾ ' : '▸ ') + 'Archivio (' + fatte.length + ')');
+      lab.style.cursor = 'pointer';
+      lab.onclick = function(){ showDone = !showDone; render(); };
+      listEl.appendChild(lab);
+      if(showDone){ fatte.forEach(function(it){ listEl.appendChild(card(it)); }); }
+    }
+
+    try{ $('backup').value = backupJson(); }catch(e){}
+  }
+
+  function card(it){
+    var s = status(it);
+    var c = el('div', 'item' + (it.fatta ? ' done' : ''));
+
+    var head = el('div','item-head');
+    head.appendChild(el('div','emoji', (CATS[it.cat]||CATS.altro).e));
+
+    var main = el('div','item-main');
+    main.appendChild(el('div','item-title', it.nome));
+    var meta = [];
+    if(it.forn) meta.push(it.forn);
+    var d = parseDate(it.scad);
+    if(d) meta.push(fmtIT(d));
+    if(it.imp !== '' && it.imp != null) meta.push(impIT(it.imp, 2) + ' €');
+    if(PER[it.per] && PER[it.per].m > 0) meta.push(PER[it.per].l.toLowerCase());
+    main.appendChild(el('div','item-meta', meta.join(' · ')));
+    head.appendChild(main);
+    head.appendChild(el('div','pill ' + s.k, s.txt));
+    c.appendChild(head);
+
+    if(it.note) c.appendChild(el('div','note', it.note));
+
+    var ri = rimodInfo(it);
+    if(ri && !it.fatta){
+      c.appendChild(el('div','rimod', ri.n >= 0
+        ? 'Rimodulazione: puoi recedere senza penali entro il ' + fmtIT(ri.lim)
+          + ' (' + ri.n + (ri.n === 1 ? ' giorno' : ' giorni') + ').'
+        : 'Rimodulazione: i 30 giorni per recedere senza penali sono scaduti il ' + fmtIT(ri.lim) + '.'));
+    }
+
+    var acts = el('div','actions');
+
+    if(!it.fatta){
+      var ok = el('button','btn primary', PER[it.per] && PER[it.per].m > 0 ? 'Pagata → prossima' : 'Fatta');
+      ok.type = 'button';
+      ok.onclick = function(){ doneItem(it.id); };
+      acts.appendChild(ok);
+
+      var cal = el('button','btn', openCal === it.id ? 'Chiudi' : 'Avvisi');
+      cal.type = 'button';
+      cal.onclick = function(){ openCal = (openCal === it.id ? null : it.id); render(); };
+      acts.appendChild(cal);
+    } else {
+      var re = el('button','btn','Riattiva');
+      re.type = 'button';
+      re.onclick = function(){ it.fatta = false; save(); render(); };
+      acts.appendChild(re);
+    }
+
+    var ed = el('button','btn','Modifica');
+    ed.type = 'button';
+    ed.onclick = function(){ openForm(it.id); };
+    acts.appendChild(ed);
+
+    var del = el('button','btn danger','Elimina');
+    del.type = 'button';
+    del.onclick = function(){ delItem(it.id); };
+    acts.appendChild(del);
+
+    c.appendChild(acts);
+    if(openCal === it.id && !it.fatta) c.appendChild(calPanel(it));
+    return c;
+  }
+
+  function delItem(id){
+    var i = -1;
+    items.forEach(function(x, k){ if(x.id === id) i = k; });
+    if(i < 0) return;
+    var copia = items[i], pos = i;
+    items.splice(i, 1);
+    pendingDelete = null;
+    save(); render();
+    toast('“' + copia.nome + '” eliminata.', 'Annulla', function(){
+      items.splice(Math.min(pos, items.length), 0, copia);
+      save(); render();
+    });
+  }
+
+  function doneItem(id){
+    var it = items.filter(function(x){ return x.id === id; })[0];
+    if(!it) return;
+    var prima = {scad:it.scad, rim:it.rim, fatta:it.fatta};
+    var m = PER[it.per] ? PER[it.per].m : 0;
+    var d = parseDate(it.scad);
+    if(m > 0 && d){
+      var next = addMonths(d, m);
+      var guard = 0;
+      while(daysTo(next) < 0 && guard < 240){ next = addMonths(next, m); guard++; }
+      it.scad = fmtISO(next);
+      it.rim = '';
+      toast('Prossima scadenza: ' + fmtIT(parseDate(it.scad)) + '.', 'Annulla', function(){
+        it.scad = prima.scad; it.rim = prima.rim; save(); render();
+      });
+    } else {
+      it.fatta = true;
+      toast('Spostata nell\u2019archivio.', 'Annulla', function(){
+        it.fatta = prima.fatta; save(); render();
+      });
+    }
+    it.demo = false;
+    pendingDelete = null;
+    save(); render();
+  }
+
+  /* =========================================================
+     FORM
+     ========================================================= */
+  var bg = $('sheet-bg'), form = $('form');
+
+  (function fillSelects(){
+    var cs = $('f-cat'), ps = $('f-per');
+    Object.keys(CATS).forEach(function(k){
+      var o = document.createElement('option');
+      o.value = k; o.textContent = CATS[k].e + '  ' + CATS[k].l;
+      cs.appendChild(o);
+    });
+    Object.keys(PER).forEach(function(k){
+      var o = document.createElement('option');
+      o.value = k; o.textContent = PER[k].l;
+      ps.appendChild(o);
+    });
+  })();
+
+  function openForm(id){
+    var it = id ? items.filter(function(x){ return x.id === id; })[0] : null;
+    $('sheet-title').textContent = it ? 'Modifica scadenza' : 'Nuova scadenza';
+    $('f-id').value = it ? it.id : '';
+    $('f-nome').value = it ? it.nome : '';
+    $('f-cat').value = it ? it.cat : 'mobile';
+    $('f-scad').value = it ? it.scad : '';
+    $('f-forn').value = it ? (it.forn || '') : '';
+    $('f-imp').value = (it && it.imp !== '' && it.imp != null) ? impIT(it.imp, 2) : '';
+    $('f-per').value = it ? it.per : 'una';
+    $('f-rim').value = it ? (it.rim || '') : '';
+    $('f-note').value = it ? (it.note || '') : '';
+    $('form-err').className = 'err';
+    pendingDelete = null;
+    hideToast();
+    bg.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    setTimeout(function(){ $('f-nome').focus(); }, 60);
+  }
+  function closeForm(){
+    bg.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  $('add').onclick = function(){ openForm(null); };
+  $('cancel').onclick = closeForm;
+  bg.onclick = function(ev){ if(ev.target === bg) closeForm(); };
+  document.addEventListener('keydown', function(ev){
+    if(ev.key === 'Escape'){
+      if(bg.classList.contains('open')) closeForm();
+      else hideToast();
+    }
+  });
+
+  form.onsubmit = function(ev){
+    ev.preventDefault();
+    var nome = $('f-nome').value.trim();
+    var scad = $('f-scad').value;
+    var err = $('form-err');
+    function stop(m){ err.textContent = m; err.className = 'err show'; return false; }
+    if(!nome) return stop('Scrivi che cosa scade.');
+    if(!parseDate(scad)) return stop('Inserisci una data di scadenza valida.');
+    var imp = parseImp($('f-imp').value);
+    if(imp === null) return stop('L\u2019importo non \u00e8 valido. Scrivi per esempio 9,99.');
+    var rim = $('f-rim').value;
+    if(rim && !parseDate(rim)) return stop('La data della rimodulazione non \u00e8 valida.');
+
+    var id = $('f-id').value;
+    var data = {
+      nome: nome,
+      cat: $('f-cat').value,
+      scad: scad,
+      forn: $('f-forn').value.trim(),
+      imp: imp,
+      per: $('f-per').value,
+      rim: rim || '',
+      note: $('f-note').value.trim()
+    };
+
+    if(id){
+      items = items.map(function(x){
+        if(x.id !== id) return x;
+        var merged = {id:x.id, fatta:x.fatta || false, demo:false};
+        for(var k in data) merged[k] = data[k];
+        return merged;
+      });
+    } else {
+      data.id = uid(); data.fatta = false; data.demo = false;
+      items.push(data);
+    }
+    pendingDelete = null;
+    save(); closeForm(); render();
+  };
+
+  /* =========================================================
+     RICERCA
+     ========================================================= */
+  $('q').oninput = function(){ query = this.value.trim(); render(); };
+  $('q-clear').onclick = function(){ $('q').value = ''; query = ''; render(); $('q').focus(); };
+
+  /* =========================================================
+     CALENDARIO: TUTTE LE SCADENZE
+     ========================================================= */
+  $('cal-all').onclick = function(){
+    var list = items.filter(function(it){ return !it.fatta && parseDate(it.scad); });
+    var msg = $('cal-all-msg');
+    if(!list.length){ msg.textContent = 'Non c\u2019\u00e8 nessuna scadenza attiva.'; return; }
+    var ok = downloadIcs(list, 'scadenze-' + slug(APP.nome) + '-' + fmtISO(today()) + '.ics');
+    msg.textContent = ok
+      ? 'Creato un file con ' + list.length + (list.length === 1 ? ' scadenza' : ' scadenze')
+        + '. Aprilo per aggiungerle al calendario del telefono.'
+      : 'Qui il download non \u00e8 permesso. Apri l\u2019app dal telefono, oppure usa i link di Google Calendar dentro “Avvisi”.';
+  };
+
+  /* =========================================================
+     BACKUP: INVIA, SCARICA, RIPRISTINA
+     ========================================================= */
+  $('send-backup').onclick = function(){
+    var msg = $('backup-msg');
+    var f = null;
+    try{ f = backupFile(); }catch(e){}
+    var puo = false;
+    try{ puo = !!(navigator.canShare && f && navigator.canShare({files:[f]})); }catch(e){}
+    if(puo){
+      navigator.share({
+        files:[f],
+        title:'Backup ' + APP.nome,
+        text:'Backup delle mie scadenze (' + items.length + (items.length === 1 ? ' voce' : ' voci') + ').'
+      }).then(function(){
+        msg.textContent = 'Backup inviato. Sul telefono nuovo apri l\u2019app e premi “Ripristina da file”.';
+      }, function(){
+        msg.textContent = 'Invio annullato.';
+      });
+      return;
+    }
+    var ok = saveBlob(new Blob([backupJson()], {type:'application/json'}), backupName());
+    msg.textContent = ok
+      ? 'Questo telefono o browser non ha la condivisione dei file: il backup \u00e8 stato scaricato, puoi allegarlo a un messaggio o a una mail.'
+      : 'Qui non si pu\u00f2 n\u00e9 inviare n\u00e9 scaricare: copia il testo del backup qui sotto.';
+  };
+
+  $('dl-backup').onclick = function(){
+    var ok = saveBlob(new Blob([backupJson()], {type:'application/json'}), backupName());
+    $('backup-msg').textContent = ok
+      ? 'Backup scaricato: ' + backupName()
+      : 'Qui il download non \u00e8 permesso: copia il testo del backup qui sotto.';
+  };
+
+  $('pick-backup').onclick = function(){ $('file-backup').click(); };
+  $('file-backup').onchange = function(){
+    var f = this.files && this.files[0];
+    var msg = $('backup-msg');
+    if(!f) return;
+    var r = new FileReader();
+    r.onload = function(){
+      try{
+        var list = vociDa(String(r.result));
+        if(applica(list, msg)) toast('Backup ripristinato.');
+      }catch(e){
+        msg.textContent = 'Il file non \u00e8 un backup valido.';
+      }
+    };
+    r.onerror = function(){ msg.textContent = 'Non riesco a leggere il file.'; };
+    r.readAsText(f);
+    this.value = '';
+  };
+
+  $('copy-backup').onclick = function(){
+    var btn = this, ta = $('backup');
+    function done(ok){
+      btn.textContent = ok ? 'Copiato ✓' : 'Seleziona e copia a mano';
+      setTimeout(function(){ btn.textContent = 'Copia backup'; }, 2200);
+    }
+    try{
+      navigator.clipboard.writeText(ta.value).then(function(){ done(true); }, function(){ ta.select(); done(false); });
+    }catch(e){ ta.select(); done(false); }
+  };
+
+  $('do-restore').onclick = function(){
+    var msg = $('restore-msg');
+    try{
+      var list = vociDa($('restore').value);
+      if(applica(list, msg)){ $('restore').value = ''; toast('Backup ripristinato.'); }
+    }catch(e){
+      msg.textContent = 'Il testo incollato non \u00e8 un backup valido.';
+    }
+  };
+
+  $('clear-demo').onclick = function(){
+    items = items.filter(function(it){ return !it.demo; });
+    save(); render();
+  };
+
+  /* =========================================================
+     INSTALLAZIONE E FUNZIONAMENTO SENZA INTERNET
+     ========================================================= */
+  var prompt_ = null;
+  window.addEventListener('beforeinstallprompt', function(ev){
+    ev.preventDefault();
+    prompt_ = ev;
+    $('install').classList.add('show');
+  });
+  $('install').onclick = function(){
+    if(!prompt_) return;
+    var p = prompt_; prompt_ = null;
+    $('install').classList.remove('show');
+    p.prompt();
+  };
+  window.addEventListener('appinstalled', function(){ $('install').classList.remove('show'); });
+
+  if('serviceWorker' in navigator && location.protocol.indexOf('http') === 0){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('sw.js').catch(function(){});
+    });
+  }
+
+  load();
+  render();
+})();
+</script>
+</body>
+</html>

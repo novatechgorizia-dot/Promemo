@@ -46,6 +46,7 @@
     }
   }
   *{box-sizing:border-box}
+  [hidden]{display:none !important}
   html,body{margin:0;padding:0}
   body{
     background:var(--bg); color:var(--ink);
@@ -243,21 +244,41 @@
     <div class="hint" id="cal-all-msg"></div>
   </details>
 
-  <details class="tools">
+  <details class="tools" id="bk-tools">
     <summary>Backup dei dati</summary>
-    <p>I dati restano solo su questo telefono, in questo browser. Se cambi telefono o svuoti i dati del browser, si perdono. Scarica il backup o inviati il file: sul telefono nuovo apri l'app e premi “Ripristina da file”.</p>
+    <p>I dati restano solo su questo telefono, in questo browser. Se cambi telefono o svuoti i dati del browser, si perdono. Con il backup ti invii un file con tutte le scadenze: sul telefono nuovo apri l'app e premi “Ripristina da file”.</p>
+
+    <div id="bk-lock">
+      <div class="banner" style="margin:10px 0 4px"><strong>Il backup è una funzione a pagamento.</strong> <span id="bk-buy"></span></div>
+      <label for="lic">Codice di sblocco</label>
+      <input id="lic" placeholder="XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="20">
+      <div class="actions">
+        <button class="btn primary" id="lic-ok">Sblocca il backup</button>
+      </div>
+      <div class="hint" id="lic-msg"></div>
+    </div>
+
+    <div id="bk-pro" hidden>
+      <div class="hint">Backup sbloccato ✓ Il codice viaggia dentro il file: sul telefono nuovo non devi reinserirlo.</div>
+      <div class="actions">
+        <button class="btn primary" id="send-backup">Invia backup</button>
+        <button class="btn" id="dl-backup">Scarica backup</button>
+      </div>
+    </div>
+
     <div class="actions">
-      <button class="btn primary" id="send-backup">Invia backup</button>
-      <button class="btn" id="dl-backup">Scarica backup</button>
       <button class="btn" id="pick-backup">Ripristina da file</button>
     </div>
     <div class="hint" id="backup-msg"></div>
     <input type="file" id="file-backup" accept="application/json,.json" hidden>
+
     <details style="margin-top:12px">
       <summary class="hint" style="cursor:pointer">Oppure copia e incolla il testo</summary>
-      <textarea class="backup" id="backup" readonly></textarea>
-      <div class="actions">
-        <button class="btn" id="copy-backup">Copia backup</button>
+      <div id="bk-copy" hidden>
+        <textarea class="backup" id="backup" readonly></textarea>
+        <div class="actions">
+          <button class="btn" id="copy-backup">Copia backup</button>
+        </div>
       </div>
       <textarea class="backup" id="restore" placeholder="Incolla qui un backup e premi Ripristina"></textarea>
       <div class="actions">
@@ -335,6 +356,8 @@
   var APP = {
     nome: 'Promemo',
     piede: 'I tuoi dati restano su questo telefono.',
+    // dove si compra il codice che sblocca il backup
+    acquisto: 'Per avere il codice di sblocco rivolgiti a Novatech: i dati sono in fondo alla pagina.',
     // proprietario dell'app, mostrato in fondo alla pagina
     proprieta: [
       'Promemo \u00e8 di propriet\u00e0 di Novatech di Porcino Danilo',
@@ -347,15 +370,58 @@
   var KEY_OLD = 'novatech.scadenze.v1';   // dati della versione precedente
 
   var CATS = {
-    mobile:{l:'Mobile', e:'📱'},
-    fibra:{l:'Fibra / Internet', e:'🌐'},
-    luce:{l:'Luce', e:'💡'},
-    gas:{l:'Gas', e:'🔥'},
-    assicurazione:{l:'Assicurazione', e:'🛡️'},
-    bollo:{l:'Bollo auto', e:'🚗'},
-    revisione:{l:'Revisione', e:'🔧'},
-    abbonamento:{l:'Abbonamento', e:'🔁'},
-    altro:{l:'Altro', e:'📌'}
+    mobile:{l:'SIM / Mobile', e:'📱', g:'Telefono e internet'},
+    fibra:{l:'Fibra / Internet', e:'🌐', g:'Telefono e internet'},
+    tv:{l:'Pay TV / Streaming', e:'📺', g:'Telefono e internet'},
+    dominio:{l:'Dominio / Software / PEC', e:'💻', g:'Telefono e internet'},
+
+    luce:{l:'Luce', e:'💡', g:'Casa'},
+    gas:{l:'Gas', e:'🔥', g:'Casa'},
+    acqua:{l:'Acqua', e:'💧', g:'Casa'},
+    rifiuti:{l:'Rifiuti (TARI)', e:'🗑️', g:'Casa'},
+    condominio:{l:'Condominio', e:'🏢', g:'Casa'},
+    affitto:{l:'Affitto', e:'🏠', g:'Casa'},
+    mutuo:{l:'Mutuo', e:'🏦', g:'Casa'},
+    caldaia:{l:'Caldaia / Manutenzioni', e:'♨️', g:'Casa'},
+    imu:{l:'IMU / Tasse sulla casa', e:'🏛️', g:'Casa'},
+    asscasa:{l:'Assicurazione casa', e:'🏡', g:'Casa'},
+
+    rca:{l:'Assicurazione auto / moto', e:'🚘', g:'Auto e moto'},
+    bollo:{l:'Bollo auto', e:'🚗', g:'Auto e moto'},
+    revisione:{l:'Revisione', e:'🔧', g:'Auto e moto'},
+    tagliando:{l:'Tagliando', e:'🧰', g:'Auto e moto'},
+    gomme:{l:'Cambio gomme', e:'⚙️', g:'Auto e moto'},
+    patente:{l:'Patente', e:'🚦', g:'Auto e moto'},
+
+    cid:{l:'Carta d\u2019identit\u00e0', e:'🆔', g:'Documenti'},
+    passaporto:{l:'Passaporto', e:'🛂', g:'Documenti'},
+    tessera:{l:'Tessera sanitaria', e:'🏥', g:'Documenti'},
+    permesso:{l:'Permesso di soggiorno', e:'📄', g:'Documenti'},
+    firma:{l:'SPID / Firma digitale', e:'🔏', g:'Documenti'},
+
+    visita:{l:'Visita / Esame medico', e:'🩺', g:'Salute'},
+    farmaci:{l:'Farmaci / Ricetta', e:'💊', g:'Salute'},
+    vaccino:{l:'Vaccino', e:'💉', g:'Salute'},
+    occhiali:{l:'Lenti / Occhiali', e:'👓', g:'Salute'},
+    assvita:{l:'Assicurazione vita / salute', e:'❤️', g:'Salute'},
+
+    scuola:{l:'Scuola / Mensa / Retta', e:'🎒', g:'Famiglia e tempo libero'},
+    animali:{l:'Animali (vaccini, visite)', e:'🐾', g:'Famiglia e tempo libero'},
+    sport:{l:'Palestra / Sport', e:'🏋️', g:'Famiglia e tempo libero'},
+    trasporti:{l:'Abbonamento bus / treno', e:'🚌', g:'Famiglia e tempo libero'},
+    viaggio:{l:'Viaggi / Prenotazioni', e:'✈️', g:'Famiglia e tempo libero'},
+    ricorrenza:{l:'Compleanni / Ricorrenze', e:'🎂', g:'Famiglia e tempo libero'},
+
+    assicurazione:{l:'Assicurazione (altra)', e:'🛡️', g:'Soldi e acquisti'},
+    carta:{l:'Carta / Bancomat', e:'💳', g:'Soldi e acquisti'},
+    rata:{l:'Rata / Finanziamento', e:'💶', g:'Soldi e acquisti'},
+    tasse:{l:'Tasse / 730 / F24', e:'🧾', g:'Soldi e acquisti'},
+    garanzia:{l:'Garanzia di un prodotto', e:'📦', g:'Soldi e acquisti'},
+    reso:{l:'Reso / Buono / Coupon', e:'🎟️', g:'Soldi e acquisti'},
+    abbonamento:{l:'Abbonamento', e:'🔁', g:'Soldi e acquisti'},
+
+    lavoro:{l:'Lavoro / Contratto', e:'💼', g:'Altro'},
+    altro:{l:'Altro', e:'📌', g:'Altro'}
   };
   var PER = {
     una:{l:'Una volta sola', m:0},
@@ -651,8 +717,46 @@
   /* =========================================================
      BACKUP
      ========================================================= */
+  /* ---------- codice di sblocco del backup ----------
+     Nell'app ci sono solo le "impronte" dei codici validi: dai file non si
+     pu\u00f2 risalire ai codici. I codici veri stanno nel generatore privato. */
+  var LIC_KEY = 'promemo.licenza.v1';
+  var LIC_SALT = 'promemo-backup-v1', LIC_ITER = 50000;
+  var LIC_HASHES = '|000ee625e63530e41d81|002d870411aef8b9f8a6|008012149cb8cc300666|0096191ae1f07ce055ed|00d8b8f29233852568fa|00fe4899020073fc8d23|01da8a057536e92349c6|021357dc8dcae463d72d|02a092488a044c24f6f4|02b9902c64113cb7f065|02df806cee9c02abe2bb|02e20056eb2160338b8b|030d9349f3a41b29107b|030fa43456d7de3cca95|031c7d9cb8f8d5444db3|0388c909f08edc9c9a48|0391a917744f6f9231ed|0396d2813c99a13b8861|03bb6a2d3e8c759735be|045c769ee26d74d5b86f|046232ccaffc4c18b530|04683283bf582156a0f1|04734b9cf1652ec86d0e|0486028403ec8da0f251|04a6c178972f536554b6|04ceaa3458af91c2d82a|050bb64ef04e5020d14c|065d5118215cc3e07d1f|066eef42ee07e57907dc|069057f33b6b53d9c4cb|0702b6b19b2a03e2ab19|0717cc94e9b3bf166d75|0735147a1afb1da76373|079e34419bbebcd876cd|07af880a7afe59aed2da|07b672c2d76ee8659a0c|07bea248efb43c9eeed5|085d38bad927bae1f134|0881cbebe45ee350398f|08b63fdcec37b15f84b6|09729740f7f2256b9295|09aeacd447416fe0cea4|0a0269ecb1717f4acc4a|0a1eebbbd65cd3378e51|0ae62b833c2e40b9cf84|0b00cd5e130832480a6b|0b8cf16b01dcf8a027bb|0bcd4927285e063cd3de|0be0e23aab426ecc780d|0bfdf429fdee474f077d|0c1f142ef4167b507fab|0c5fcb1c7992802ef16e|0cb67d23c58d439eda9e|0cbdc32a43be0831a0e5|0ccb3a2e48b1f49b9a30|0d0a966c1930d6086e6e|0d3bdf8ca26e23cba1ec|0d577954024017ba89e3|0da397d502f1e3612827|0db9b423d36b5144971d|0dcea2bd54a39332bb20|0dea04edc7ea5686be3f|0e1dfb72c36060961e6f|0e353942027e2fb580e1|0e6c5ccd1ce4e94a2693|0f00378d1e1071941d58|0f3ad90692b2883da70a|0fd8c4a22c74e814e1a7|10288353193224b27388|10301c304d3da32e4cd8|10546c6bfa3abe85f6e3|1082ed053f2cb8d65535|10cae259bd4b15db3b4f|1144f62394a3a69b8568|117e7947a1ffda03731e|117f3994e6ed54553abb|11c38a6d32de7c921e80|120a7f0fc4a7dee1a0a3|1220d15664dc4f46dc23|125227f9865d42ea1b86|12819b27ec428c1a9e1c|12d9bd0d1061885f310c|132624cdbbfe93564e5c|133c9751c76be3aba645|134888b5c978566f3fad|1359c712e6961f7c2b5e|13610e38c989ed7a3363|13cb88a4b6d9d4d3ff41|14106402d76027b83a56|14378f1ae55c7246ce43|144437d79e1b9e2b2b93|145deefcaac8930caf36|14e257955299464aaa64|1539fc9529600d27cfa6|1560564bfe5c3d9c6f25|15d62ba37ae8cbe05eef|164f6cc671eacb9ed54a|175a9c629b0c9e57293a|1765cb37278776c91f39|17766d3e256743574444|178648eb078fd5300e01|18c27ecb8029fc0fb629|18d47771b3240bb95db9|18e8298abd3f8c003428|18fe13a9422776035ad1|1987338aef1173ac1d52|19c516581102dfb2ea5a|19d37aee07542fc4d6d1|1a2b8c7fdc48137cd8b0|1a30d755a15df6933fa4|1a7608f7c2a74732ee62|1ac0fed0c2ae94069829|1b3422ee376771b16e6a|1b5e08d3d2796f1d244c|1b6725f6cd633e360bd6|1bb7bd3b4b60f71f6bc9|1be15defdc3e40372227|1c05d092a89020928ca2|1c0f1b12a2f075d77acd|1c48dcfc3e33e2b69dca|1c83f7a27c9d688dd49c|1cd8cef733b7ca6fdfa5|1ce0ddae05f37de80ae2|1ceeca175d243b851e46|1d8eadb38d22b95f82dd|1dcb93f9b07f19155e9e|1df16d8c251de64819fb|1e2046db5102f0e92aa7|1e60f5b4da930cbe0f4f|1e9e649dc5f69fb4b9d6|1edfea292bc5734abea6|1ee17e8a6478ee6f02bd|1f5772cb08f65f6b6b2c|1f5e7f0d6cbe023d5406|1f7311c8918f9e3c5308|1fa6d191615584ea19f8|2084e017f67162a95d02|2091c537048cfb7b9f7d|211ad5d736f037a9304f|2212612c8eeebc671264|2263fc8f197d10e39bbc|22c969d816fc70cc1fdf|23842bcfcb3f4a90ec47|24389cd04ba69970c579|261f8217eb3b70c2687e|266d18e5efafc247d6b8|26844b5ec22efe9369db|2687d8e2e28f5841ec37|268afc7669a80ad68a92|26e2ec3405ff7692ae69|27119dd2bdcc3159f09b|27a11bd9f4bfd7c7f9b2|27a1c045de179b1557a1|28264969e36d4946a8a6|282de9ff0105c08a0d4e|286bf5261ae423b2b5bd|2874ed2e1546ad4f4e68|28b4912d82cf25434dc6|28bc5d38650bf7912ece|291db9b6012b23ac8fa1|2940b13b2de4910ac0a5|297d2713a66652a743e4|2986aa8b3764bc7deda6|29c31e6b87fe8b73f244|29ec90f42ab73b34e985|29f8db68b94b83d9ce71|29fc7d49acc897c5fdda|2a04652f5d781edd824d|2a2966bb52a58e930a2b|2a81a9d2e033b1a9dea8|2a945539744d16c65bb9|2aa09ecd24bf0cf69417|2ac36e0c50f8739ebaac|2ad6fc2bc1d3beea01c1|2af272428120df4b73e5|2b4192f432ebfef2c450|2be2023611e1830a0d12|2be80a5d1199a602b0f8|2c429680c19b968e11b6|2c54ba78969bb7c34c1c|2c69e46467130de67112|2c896c4a4aecdd652c0a|2cbee1ec792111f74289|2d70cafa2c3f7173b425|2d73a57a23218d6dc574|2d9c8de9d361ce962733|2e117d6db19e3e0b699a|2e6caf1d85c0ba28a655|2e7c5eaa56f92aa96402|2ede6c270b98115fe065|2f108e332ca89eaae6d4|2f584f7067dc25ec6711|2fe205b6b1fdd4ca0f95|2fe97c8c9ddcaef4bd24|3013e402f256353d167b|30694c63360e5fdb206c|30759be589502c8b6e42|30b69dbbd9c51a91df2e|30dde36d1342468c3829|31177d73a167bda01888|315b2a24405eccb2dc38|32af84173ab5d4dc6d26|32b737d8043871f8d79f|32d4b5254e1cf35e2e65|32e549bcaa81d35fec55|3376ee915dba182db46c|338a34c451290b60a44c|3428f4496da51cf61ae6|3445f7ab424bc0e373fc|347a1a79b90fb6254195|348004087dc7dce2f183|34a700b35f1d2a6a4e85|34f26a1c13c5673c7f2f|3505d79d9756863783d5|358ac457ac647d5a4762|363cdf3dc778479a6d48|368017d967c048e25ccd|3691b2c564f2cb03ae18|36d170fa24d5ccf631b8|377bd79e030fc2075d4a|389cdf919e95167ae935|391eb8a42c4b409016a0|392c0f97593362209369|3a2fec83ea095a8271ff|3a31af882f5e25f1fbaf|3a8446b3ac9bd4c2eab4|3ac859aa03b6de3731f0|3ae5896041b7e4429d77|3b3b6572c7da582fbedf|3b7ba2c8ec712c823d18|3bb40c37e3cec4a63a07|3c1a47a7c67af2459e11|3c419bb60de10f103c10|3c57d055db62e6edda70|3c896bc9b2042d67630f|3cb2491f941d831b2958|3db3a39b289b518b0bb7|3dea14eedd8c4bf328a9|3df811321a52eaf670e2|3e4d0d153f020e67cb4e|3e8fa1de6149fecadf4c|3e94d5ca6dea52563001|3ef58122ec31589cd7b3|3f60c98ac991b15b248c|3f7986a8bfe2897877c9|3f7cf2e9f94e06a57909|40175990318a96cd4d5e|40472834ea49f12e321b|404f800cee32c0e84a86|405cda45465bb4ce168f|40d0a368ef54c7cbc367|41100bcf787fde9c2158|412e9613ce1be60aa364|416e2fd79f96d1ef040c|4175b014ec52389fe255|41b1c8e7688126f52925|41d0c6eb8b6fd8c4ab38|42f91795537660af8389|4341e3259f567d48f633|4358320e0b55ddb8ca3d|437c626ca8369b8786d2|43a2f1ba26436af229f5|43d77fd1eb0febd5ba27|43ff239f98ac3e991caa|4450b0142183e815d2ed|45574de34773c50c7e54|456b7ef0a0b09e2e70c9|464108af1cafca5af237|464d24e606ce930c43da|4736384557bf9662a353|47515d0fa4231b8d68aa|48242dd2dd18e1965844|4826e5a0bcee52e935b1|48298d772b31675ccc44|483026efd97e45c96848|48346ee79400bf077cd2|4834f4c435216ea39d5c|48931ab935b7a0502b77|48d6f79a81b1f30f48ca|48e38b9297be290b1794|48f9dcc011cd3661a057|495ecf5a918e595d4b13|496db10d63efd588bbf0|4a025c67fc0e35455fe5|4a77f2f5cc3bc3514ac2|4b028b97da5e12735ee5|4b272d61068e21963343|4b475c0ef3c3b343d198|4bd3e1f894dbb76c5c02|4bd8a6e7ec7b088e1580|4bde3afd287a473ab0bb|4bff35decffc766732d9|4c3de0ae3a2444085e24|4c52d0559d58bac97194|4c7b07948ca8b9a31d7b|4caea8367780684ec5ee|4cf23b66d9f2ae8f5e0c|4cfbd758dfe552966c4c|4db3e9143b94ce08a2ae|4dba64a63bcbf1d08649|4e4281e7e6d4998841f7|4e7cc0629f8b00b4a0a0|4eb2634c155bb03b64b8|4eb35cabdfb800ecbb3c|4ed8b0fd100605ba6894|4f0039de976bb471383a|4f19159b2f13c886dad7|4f3c30fead08b206edf4|4f5b7025561b15506fb6|4fcf0dfef78d1239c087|5009044b5a8eb498f7a0|509106da642823ced060|50bd536676eaec16a3d5|52793486ee0c55120156|531bbb2d985c5a9f2483|538f155781da4e35c1e3|53a3402d945430bcd249|553b15977ae8e53700da|553ba3073e12e7d7a8ad|554e8221af3ed579c8dd|55636cc2d1add5dc15d1|559100a75db8014a1cdb|55cb1bc6299635fd4028|55f2a47ebf962edf9141|5602f4df61a04be538fe|56327e03f120a8b538f3|56814d11887335ade8fb|56d4109cc1cf58200952|5767cb3e6e9814fa8485|581b2b8c02a2e6ff24d2|5847d50daaff0500aae5|584bc9d6e503e7c00006|586bd1ae5f18aaae6b17|587fa38bd75a4d40173d|5895fe83fe4a0de196e8|58c547c0be396ba8001c|59029724da886b856960|590551f9f777869430c3|593943b0f84eef1e24d4|594f97e0fd2fbde0a95c|595e8c2a98a944f03449|59c6bc8fd6b106ecac36|5a61e2135eaff41dd068|5a63e02f072291e0d839|5a717caabf29deea55db|5ade14c62fc34e9dc1aa|5b326e6cecc1c05b7761|5b6126411403b4fe7912|5b699047c57f378b908b|5b7bbe405d92d3dcf626|5b8791831d441eb6ef1d|5bff0d3229bf333f80a9|5c8abb05c1dca4861cc3|5c8d605a6943e0f45caa|5ce91c53a4ed44d3192c|5d599268cc4158169008|5dc50e62da9b63555441|5dd8a59abe03bb0b90d5|5ecc673c933912214247|5f5275df22481691fb64|5f6550507e3caeb171fb|5f6fa0fdbc1af30e0359|5f7c19457184b22e91be|5fb94a8494c00359cff9|5fcc95e599d5110b4b67|5fce9b3a4ea0acfffa58|5ffa5de034e5d428c549|6002ad2b5e0a16b37f69|613528b6c1451b14aa23|613e6dd063653ece1f94|6220ae0d29df2c47e6b5|623daf477c60c5ddd722|625f8f0fcee8bf43bdeb|629fa43764aa4e30c037|62dfbb82e40a77c26c7a|62e0be5634fbdd9343c8|62e67a8c7943574dfe2e|62e9d0e452175f5dede8|62ea64951b7db6b6c2eb|62f819bbbfc6009d0509|638b2547a3148280e712|63d453b23bd8646d0ade|63d9443a651067a5cbeb|63f239439ad817152df9|63f4e7d759ab549bf641|641f27615826c8fce0c0|644ab2a279d462da2332|64535ea4dbaad05a55b6|64557abf615ff043a809|648de1c2b2c412e4cebf|64cdfc24dd57e3fe573f|659981c651d325aae847|65a98a66f55e624b6c51|66ac6d9b329de14570ab|67c4c42c04aaa58eaad8|67e6387c40cfa974c239|67ead3bd47560c05b3f5|682c0e3b0b0a963346d7|6850eaf4d4e0681011ef|6876f3d53711a52ba6b5|6886ebf5cff6fb19d876|689037c5813adf4b2e64|68a8de1bfbe61435ef87|68f18610abcab58aa6bb|692e1239ad67e98657b0|69609c54a5baaf798326|697898bbe876c9286042|69a7383f76c167ecbb02|69da25bcbaa5ab6533fd|69def222d2a31267f523|69e61034545ff7a5f83f|6a5f758b7663eabcb10a|6a9758ad92ddea904309|6af3ae54273c7a3252c5|6afc9c2a29594905360e|6b44dc763071b5835b1d|6b97d6d49aa9b025b81f|6bcf49b8cb6b4a7e1da6|6bdbb865098a18a59bd3|6bf33557597d806fe95f|6bfe3a00e94b91b80383|6c121ae9e388eadb463b|6c1ffc7937136df0d063|6c2407201cf4c0ee925a|6c2eecc02456e57e7116|6c4abe6775480ea26fa1|6ce0735664b8a51279d0|6d37c6cb83bfcd0b582d|6d3b4b5aa2a166e17ab0|6d482f96e74eaaf38a11|6d77dede7d2f5ab97f75|6dd43324f4df10c48c6f|6de6c275d936e64de5ee|6df42aceaf7b2bdca665|6e1b76e907d91ef43dbb|6e532e1816c1b284a175|6e60be29af7778df951b|6e7a1ca1efd0e7a83d46|6e86d0b2442f2ff2c30e|6f936a97ec375bc88639|6fd5bbac84b8be9a2f09|6fece7d0d3b25dbc7e36|700225e5a6a4d5124cd4|70536eb2678f272fa345|70b070439abdf47de07e|70e3bce8569a945e4652|70f1863e42f3c8df7fa3|70f27f085c9dd15b489c|7118f96de3ca507b84da|715cbcd436c72d7e702b|719d05b83cdb410174c1|71ab82100ce994967c95|71c0f099775431b4c377|728c29f8faecd363d929|72c9541787c300600e2f|72f6dfb0e865a1dac2aa|730b51e4e504a0c42436|73312b01675827c04692|734437fc4913fadcb073|73683f9e56d129a497fd|7392ebcf8ac9a3944233|746ebe97c8dc9764911c|748e47e27b46c88be783|74cbc074f48fd615645a|754d73b31c53a63c9d1c|75a3e52138db67c8f3db|75c090a927e0b3147491|75e93640760700d915eb|75fffd8c16345f1c496a|76c472cc277570acff37|76f887401749f9f4f39b|7704d1d1ffeca98774c6|777352c7521b3b2f0966|7792c82794bdedf0fdcb|77ac57d710f38c06ed00|77e37b7d189951f1c255|7807a8b14d5d2a27b893|7819e045ba6e5d486851|789e2834ad47b6ad8763|78abf03d14df154ea3d1|78b2d88e6731654bd505|79279aee927874eba837|7964810103cae4b22235|79ca18367d71a9bc1a14|7aa224e22b14550ec28f|7b5280f2913e62e0e96d|7b9fb9da0d292c6bf75f|7be59d0426d3cfd03c0e|7bf0dc3028371af661f9|7c11d55b296624e1e5b9|7c2e687b2bbdecac61b6|7cad46fbb843be28cf10|7d029186952b55092636|7d3d93e88e22343a8df5|7d6d9b9dfe824ede4fae|7e6d3468e261af9f3300|7f1a9b7f3bbbf5db1cae|7f24a263841fb93756fa|7faceebb1e796a53ee6d|7fef09ecdf8079eea18e|8031945cb9e0e22c5cfc|81106dd4a6b039613c53|81345003b0527e10fefb|81b150356413783ca57f|822584b9fb4308262b97|82589d9291d9fe26fbcb|826e25dfabebb5e56ee1|828010fff6c867493853|82af672935d26723ec52|8329eb930a4eea7e0be1|8352139091e1b707a24f|8377efa6da81a72865ca|83b6a3885e9393f0f69d|83cc1348e71aa6092acd|83ee318ef4116e02a02a|83fb7c4bfa3744d0df7f|84a1230fe39918e7a989|8518dfc6cc6d5a31470f|85fa200155dbdca2b999|86cd1e0eda42280f35aa|870a2b40a994a7e21baa|877855bed5bc778cd54b|87d073f7d632f16861c4|880324f264785624c769|886b0f847509563d1526|886d06656070db9d797a|8880433890b0c6db8e7f|88f743111fb347ec4f43|89679bdac40b7f639af6|8982604009f515860172|89b2da18fecb3e3a8dcb|89b76e7e98097aae4ba2|89ee0bcab40fa3e12b47|89f02bd63dc2d4c088c1|8a2cbf6e9988177c14a3|8a493782f5d5dcf41671|8a8a042706d31e96810b|8ac1bbecd7054a3d0821|8b083df534b5bd228fa3|8b1de09a9617a71f7682|8b5a1ef49b744c909fe8|8b697ae37ef54b285d55|8b8e95defb3b09f7055d|8c1c7e7667310b741896|8c32f32c7d3a65e67c74|8ca413de31424d749ab1|8ca69f78bfd9ff39d266|8d1896c8b2a79700d5e6|8d33e100a29fa0785334|8dc7896f2d7130892602|8e15b5bcbdc3f13fa15a|8e17db85733892a552eb|8e48770493f22aabb481|8e56e88a7872a12958e9|8e9d0638cf22e903ab54|8efa4e118a986f2cf480|8f522ffc96c2f1ff7cdc|8f882a01963e3678e074|8ff1fe81d037369fd584|901b3db9e4038ecadb8d|906d59e16c6e72f8ed76|90bbdcfc7953f97ce4b0|90db1f175c21159bea45|90fa1b634b78bc4cdd40|9128c23773da70cff7b6|9139f33c310c32eae71f|91e84ec9361e0ac7186d|91f4b4b54802fb5f2a56|930b1370d6ac9e68bea3|93149ffeed4962075ae0|935f65ed30658e63261e|935fbbccf45ca8994c28|93b79fa735e3c6acbe2b|940f5c1e46ec79633d53|9419f21cb5f4f06f331a|945759090bb32ea8c7ca|94a68c6fd492d4f546de|95085b45b2f6d270ae80|9508ff1b31abf40e4ca0|952b563af95dab6d7a9f|95b4dbad72bfa070d0e1|95b76d8ed4e90179a630|9618c90fdba561f220d2|96a9a8d43f1fd6a6d6cd|96ebe2f6d73620650703|96f4431521dec6e654b3|970c1de6286c490c4d36|976537d7480a08db1b7b|97ad223a49105dc62281|981d520ce46fa0980a1f|985188c16e97528a8d22|98ab2a828e8239e959e1|9901383c4f1b99dad45b|990e37c56c15f614a1e2|9a36a9ee3f5ecb3fe137|9a5f5630b835b40faccc|9aad2edcf73ed5212896|9bea4836ee6ad3b1bd0c|9bf6d133f49e87e56a2a|9cbb447b8bae12afc701|9cc0f9a19601fa57b9d2|9cff84c4f6dae56ed72a|9d2eb7685c197ab010b8|9d8ec1a111f451cb72cc|9df1026a2eccba77ac41|9dfef14ab5ff4f48335f|9e15f34f0ed67c74065b|9e44e56c21004de16457|9eaacf1c05145ce38461|9ee5e0f3c9a603309e20|9eeb68148f000122b2ee|9f2aa25390ae789860d0|a012eabc9cb4945a6879|a028d6f0ef5b3641fa32|a050768baddb9cc043fc|a05db112a765b38ed30a|a084980c9b440040541e|a12fed6b4acaefe0c1d1|a1608a6e14ad1349a4bf|a16d9d6c7b63df994890|a1a0a3632f1488d79348|a1a48e6a713d42739af5|a1a745d23c7ebf6d8af1|a1bc7a02a934277b19b7|a1de1f270dbdf851a01c|a24a16f14be361c336cf|a25b53fba184f8e5b949|a2668c20684b23315cb7|a29f3e6e6a908e1f39a5|a2ba7e8f469154b6da74|a2bfecc1e89a1a40f3c8|a3009c5d865616336f86|a30320af625f56128e33|a418cc05dda5fe016b9e|a446b76c87427cc3fb08|a464bbdafab46826f09d|a464cd7bddd2c759b744|a47375a32efd0fc010b7|a48fc27c84134f64c2e2|a4b3805bb5a54bdb9473|a50388253264a0b03a44|a53276df2c0811a80e04|a57d2f0661f056984e04|a60a28c34567bee94d3d|a61aa6f6781ee90837fc|a62983da71f1feb4d57c|a6425da0b31da722cc71|a69a50a6ae665f746421|a6bc86d2e55b7f257563|a7023f17baf8a990167c|a72980556ecb4cf3e6f4|a7fb8a21120875ec1986|a8276b57c4e5d5f57649|a87b8c6b9a427da19824|a932d8850c979cff1fc4|a95931b5bf612339cf11|a9652eea534140f58cf9|a9c152022f7e67f6b2d4|aadcdf682cae071e2d36|aaf74890072f5489d483|ab0ffc77320ab332a456|acb02d84eb8a6f6d1bb1|acd066d127ec1b73a80b|ad290d2f6540f186ba9e|ad4d49b87da835788dc2|ad8f7b5ce37c786bbd4a|adabdf2bcd0f0b0b008f|adc961b45aa2da383789|ae0037fe0639d1df786a|ae429913ae45e54992e3|ae6d29cbd2a1f66439ef|af07b87de0c23d89fc69|af3b2b41e5b328afa213|af653587c2ca8fc4d229|afb95ba2a797c7912f56|aff311879bce83fb3f95|aff4eeeb55ea148a6441|b0676eaf88d47f5b6b30|b0ba336da5c0306f0cfe|b0fbbfc01055bb69d2c4|b0fbe1c296181a1e26eb|b1e471695ad11ce2d8a6|b20818e92f2d08be765b|b265a9c66cfa047a29f8|b29604733161029f74b0|b2b9d1a47e15bf0cc6d1|b30d09d75eb590078c8a|b32ca79393a8391f801e|b33c771f092c95715f01|b343ebdf211e7e872923|b35e5b4b8919ad0b50d1|b36b8fe2073310bbb61b|b372b293f5cdcb795656|b3f1427f2635ffe7daa0|b41d38b43538946917d1|b44dac483a527bacd9a4|b4651c5126fc6abea140|b4b04ab615d6353a6c6f|b4b519bf78513ebe7f1b|b4c26ce3f5ce5a2a43fd|b4f7796a0eb367b67528|b5b3d4d0d50183da5274|b5b4f19153ef3f09bfd4|b65e84a50c968fc1972f|b673e43540331722d78c|b6b27dfb90d16944894a|b6ffc0946a6209f178fd|b7001b32748fe163cf15|b70ee4e7239bb4211be5|b7142894c68ab34ed9cd|b72bb46310dab8a13d73|b733a9441e5346f4a04c|b73bd42530a2d717d18b|b762c0fe5f9c311bd92c|b77654e4d3950ccbc475|b837d24e25ab67853707|b8383963814387334ad1|b857fd01fff63a2eaf30|b8582e54726bd409ec6f|b8764d8cb5e7b8c2bf89|b8b87cfca78ba5fe6fd2|b8b9ea5d761cc6d6fe6a|b8c699278eed0631b884|b925e3fb111d9b5cebf7|b9b49917badfa29f1e89|b9c5b2fac96fecda9bb8|ba9d724884f0a9e3cdcf|baba9bc2223597f63fc3|bb6ffd6befa0057145cd|bb79d72b3b658a83b113|bb8555fc30d8b19c7c8b|bbce17c7b97b75e00fb1|bbe20ce636007f944b47|bc344f3e350afe674ada|bc432a35a8eb674079d0|bcc1d3927ae71098cc32|bd7a665393c6a17e8c58|bdfb690e0ee063ff22bf|be131933d0ac457390b4|be49fea4fa749d64fd76|be99aa274b4c72992939|beb7487ed1fd10ad1d71|bf226671d5d4dbad5190|bf3ae61278d9d33e25d1|bf815943ed84e9cd3741|c00d77c2299aa283e7dc|c013a7b82de9fee3dd3a|c139f8d5c85e1b7773ca|c17da3beb3fe6755c825|c17e05bd1639e034dc4f|c2b92bc8e6a8b2fbd94a|c2e1bb88866ca3394d17|c2e2fa2955f48ab30dd6|c332889694fa8f2bdd29|c33c608f2de6ff112b19|c359953e4b9872d3ea01|c361959413c4f1f293fb|c3b6204da89f42d762e3|c3e812967d379c86e907|c52b7fb6017fa059f9c7|c5c6ae4f716b03c6c825|c5ef16b8b6a774ccbe87|c5fe2630526e4b16b95e|c66d7485c0933dabbaed|c6854af1c9b6418fd9af|c6aba7f1f7357f94244e|c6b45c1ac732c8ee7efa|c6b70a9d4048c0c0f24e|c707923c1d52aa195eb0|c749f7ab7f3c1bf7a2eb|c78b20b6d70053f7d23e|c7ffc2c62bc6f22ae163|c81faf6aeca8431f36b1|c872b8571f5a2bf9697e|c877d238f6db1d9b1c3a|c8d3c377abb91e93e018|c907f3e8c356335ffbac|c98e3159dd30d5bacb7f|c9a1dc0f35632245dd03|c9a353b26e3cf73aef61|c9e00ce03cd1e2c330be|ca729ffea8fcdf96c543|caf3e9b56b306682c40d|cb04395625ef29eaec6a|cb7c534eb1703973773f|cc13b348f590718d1bb6|ccd581d80b4028bc69b3|cce103394c6af788dc2b|cd20aacc2824b0f2fc38|cdddd7a04f8ec0e48bca|ce898972db29b67d53b8|ceb26a606113165e0bde|cece89ab6695070968a0|cf38f85c53ebbd36b28e|cf9f4198aee23df7daf7|cfafeea3e120de73e9e0|cfcb67a3133bea9e794d|cfd949b172aabc29878f|cff4629a395a223635dd|d00a2a5c8593aa1a183b|d049a42f9c77f660bbab|d093e4be7d7546f60bcc|d0e2b42af383fd1fb354|d1069481f31f66d64d21|d129b1a68793ea5d144a|d158458be09a18abedf1|d178ecaf4993dcc10140|d286f8d2bb38e4813592|d29f873eee9f99a9b885|d2a4233ddee4cf5ab984|d3071de3547ce4022692|d3337579ca286f3a5543|d3565f9e9b9d76339430|d462358527a234b744e9|d48632b8338a118c8b9f|d49f4d3a25eefaab656d|d4a6e77fe94b07a3ce14|d4aab37386df0c72eb9e|d4e4836cae806e66f593|d532f262c2305e2152b5|d573c85e3425ac89703a|d5f80b2c1152b9f5609a|d621b648064488b1dc88|d6366fa2506e63404916|d6588005723f11ef4a29|d66925f381c2d4b94cc2|d766d53df2ac910ed3fc|d7a5825c10d5ff0d0eed|d7b571f33e0c406505b9|d882a882a1894496c5b7|d8bd03d6eaf6dd35ec4d|d8c2346473dfd2b914d9|d9aa77fa9376161ec7b8|da070ba9a09d1ce74f42|daa16989dcbeeae01ba5|db37c66f126d1c301b50|db3c6cf4c17c4248e2fd|dc2f9bb2287ed3d013b9|dc422965eedc76230b99|dc6ac92a9bfde17ed63b|dccae3f420a2a1a9be29|dd2b3aa9157e2102f3d8|dd6be7452a8cd81ee267|ddadfcc21e8ebeb4523d|ddbfb6c735cb4c55ef10|ddc2a0e08552f74adf61|de35e650eba3388454ac|de5659d540ce88ebdace|de68f08082609cbe393c|de85e2224b6e7119e6a9|de87a36187cd2dddde68|de9684e8287581b0578a|df0aebc34f5dcefb03a4|df2ab01d4075a9ee461a|df2f05157f2d453fb89c|df8049605f796a9af45a|dfc2406d0d8c55556aaa|e037752a19e8c70864eb|e05bb1e6f970bfcae549|e0e0a1683bdfc8341a0f|e0e3ab6a7121fa1033fe|e0ea89b2c827ca00873d|e0fa73f482eab1781bc2|e1024a7e23a903b1045d|e112981d9e4b9e4ca224|e11745e483f206fd979c|e1ac67490ac16f3cd035|e1d20f3943caf8ff123f|e1f5111edbb1b0640376|e21333490f9096a44f67|e242c8107ecf215448a1|e2552403ade3b88b0875|e27e8e1f053c3e053941|e2a79e35f4d98b84495c|e2b50afe7db811b4ee93|e2bc2bef790a37088abb|e3075b19f044778a94c7|e368b3e95559a23f0ece|e36d04e7304b1977283e|e38e5be65fddfe63415f|e426b0a818ae8dbecae8|e46621c41a6664716581|e4e5a2d835131a8fdfe8|e5005b8d0089607e74d5|e50183057ea50726a590|e574039d426328013fdf|e583d16d14e3be34f79d|e5915cf3a3fbfb139c9b|e5b26c34710112b10e8c|e5e91574b384f8d606b8|e668ef0cc278b8969139|e6d6eb63abbe62b7a7e4|e6e7e6e0c2fa7a4260db|e704493d433aee5fb83a|e74f3e801d143dc009ce|e7544b21ac496ee913ec|e796ccbb5a258d50335c|e7b04d6bc821f9402dc2|e7c43ab9ef78efe10189|e8264597cb968aa0dc34|e8431cba48d9ac97a32f|e8cadf6f495088d22f40|e8f376d09891945a4210|e953fc157b159a10a04b|e955868fdd88a3d6aa66|e9c8c6b2771d23a3fbef|e9ce5be3a6b5c3930aba|e9cfe755aa8f2bcfc076|ea079e4b0bf9c79d97b1|ea0e9205624f18b44c13|ea215c5572513f33b8ef|eb246997e2feec974780|eb40cdf41730668af7ff|eb87c7a4f914833be157|ebe049a9cb81429ee0fa|ec185415ea55676abf62|ec5f9ba5675cac2e3165|ec83d23979d1adf1eb81|ecd9beaaee92a3b9fd23|ed53b8401cd759daeda8|ed74f4c376a66c769065|edc65ed839818b35634f|edea8cc81fa2ac7c4b7f|ee0bf62f8ab3e3b1032f|ee3a32733fea5e54d723|ee3c104b91f34bb90532|eefcb184e74c014a567a|ef17922e34bb1fe70902|ef26d8b897c51a9697aa|ef422f82fb0884d6e81a|ef5e15ad406bb5b6af75|ef6a3b1182cf30590775|f098d381fa7401ab886f|f0c56900eda69a7caec2|f1404c7660f782fb6db1|f1591e8442e8ea059202|f2049d4dc42e8734c78a|f246ea4e1c6bf403194b|f25ccb02013f9e5724e4|f2a5ebdecd7893a06e43|f2c66ab4acbf7f3a0194|f33c92e4986605d190b1|f3741b32618bae852b98|f38de2c41c01d4cac340|f40045f3a9849d20b5ee|f41ee4ebf903d3becf48|f4387d0b37bce27432c7|f563222edf0e664db908|f5ad1c4e0b0b1101525e|f5cac6c259170b45a61f|f5e920bcbe153f153fd8|f6bb6574bba07065ed43|f791d611c45b1825b0a1|f7a1aa14b60414d7b04a|f80820fba05c00215e06|f80cef33737c9ea2ff59|f80f28651e66f0faa734|f84b508b9cb896fe720e|f856ca4df15d97a2c8f7|f8666ada99673b369a01|f87e4db3d91ed22be684|f8d2e3f8105983a106f3|f8e4567c1b7fd9a01417|f8f1bc21c9ca6e4e3b1b|f900ae0c917f656c2095|f952fcb95b36ce9cd8d2|f9763a21beb05de2679a|f97b9fe0513c8d28d70d|fa26bc4117b937aeca0b|fa2f9b4420dd57c19639|fa5efc12519589191db5|fa75c4cd318459b0be1c|fa97f5f099ef36d5e0ed|fa99c7c221e5c2dee9bc|fb0365684456ea34bd9a|fb445a44d829638518d3|fbba18617b86de239f9a|fbf8f829abbcf1328b52|fc0b396b6e82c0b777dd|fcbdd6723a09573c8acd|fccde791c2c69b73e7e7|fd25fe52fdfd50db7363|fd2bf526d99f18754ed6|fdb0e68cf48b3e7e9caa|fdcf8524599b630323b4|fde5fe27f76735cdd3cb|fe012993fd71599b0b3b|fe1403ff2633d118266f|fe1b36425d1f01bf724a|fe1d11dff3671f502262|fe41aec8381072bbeb64|fe4bf990c7f09eec5a15|fe7ed58b655fbf942924|fe9e3a5c99b9d0d7b0e1|ff0e8133fba0a8830df9|ff569750fc0fd8078e50|ff6c299e26680670e98d|ff8d2d2dca0c8ff79992|ffea615a094f2ea523a4|fff3c1ead782ec712822|';
+  var pro = false, licCode = '';
+
+  function normCode(c){ return String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+  // risponde true / false, oppure null se questo browser non pu\u00f2 fare il controllo
+  function checkCode(c){
+    c = normCode(c);
+    if(c.length !== 12) return Promise.resolve(false);
+    if(!window.crypto || !crypto.subtle || !window.TextEncoder) return Promise.resolve(null);
+    var enc = new TextEncoder();
+    return crypto.subtle.importKey('raw', enc.encode(c), 'PBKDF2', false, ['deriveBits'])
+      .then(function(k){
+        return crypto.subtle.deriveBits({name:'PBKDF2', hash:'SHA-256', salt:enc.encode(LIC_SALT), iterations:LIC_ITER}, k, 80);
+      })
+      .then(function(buf){
+        var b = new Uint8Array(buf), hex = '';
+        for(var i = 0; i < b.length; i++) hex += (b[i] < 16 ? '0' : '') + b[i].toString(16);
+        return LIC_HASHES.indexOf('|' + hex + '|') >= 0;
+      })
+      .catch(function(){ return null; });
+  }
+  function setPro(c){
+    pro = true; licCode = normCode(c);
+    try{ localStorage.setItem(LIC_KEY, licCode); }catch(e){}
+    render();
+  }
+  function loadLic(){
+    var c = '';
+    try{ c = localStorage.getItem(LIC_KEY) || ''; }catch(e){}
+    if(!c) return;
+    checkCode(c).then(function(ok){ if(ok) setPro(c); });
+  }
+
   function backupJson(){
-    return JSON.stringify({app:APP.nome, versione:1, data:fmtISO(today()), voci:items}, null, 1);
+    return JSON.stringify({app:APP.nome, versione:1, data:fmtISO(today()), licenza:licCode, voci:items}, null, 1);
   }
   function backupName(){
     return 'backup-' + slug(APP.nome) + '-' + fmtISO(today()) + '.json';
@@ -660,12 +764,13 @@
   function backupFile(){
     return new File([backupJson()], backupName(), {type:'application/json'});
   }
-  function vociDa(testo){
+  function leggiBackup(testo){
     var d = JSON.parse(testo);
     var list = Array.isArray(d) ? d : (d && Array.isArray(d.voci) ? d.voci : null);
-    return sane(list);
+    return {voci: sane(list), licenza: (d && !Array.isArray(d) && d.licenza) ? String(d.licenza) : ''};
   }
-  function applica(list, msgEl){
+  function applica(bk, msgEl){
+    var list = bk && bk.voci;
     if(!list || !list.length){
       if(msgEl) msgEl.textContent = 'Il file non contiene scadenze valide.';
       return false;
@@ -674,6 +779,9 @@
     pendingDelete = null; undoData = null;
     save(); render();
     if(msgEl) msgEl.textContent = 'Ripristinate ' + list.length + (list.length === 1 ? ' voce.' : ' voci.');
+    if(bk.licenza && !pro){
+      checkCode(bk.licenza).then(function(ok){ if(ok) setPro(bk.licenza); });
+    }
     return true;
   }
 
@@ -789,7 +897,11 @@
       if(showDone){ fatte.forEach(function(it){ listEl.appendChild(card(it)); }); }
     }
 
-    try{ $('backup').value = backupJson(); }catch(e){}
+    $('bk-lock').hidden = pro;
+    $('bk-pro').hidden = !pro;
+    $('bk-copy').hidden = !pro;
+    $('bk-buy').textContent = APP.acquisto;
+    try{ $('backup').value = pro ? backupJson() : ''; }catch(e){}
   }
 
   function card(it){
@@ -903,10 +1015,13 @@
 
   (function fillSelects(){
     var cs = $('f-cat'), ps = $('f-per');
+    var gruppi = {};
     Object.keys(CATS).forEach(function(k){
+      var g = CATS[k].g;
+      if(!gruppi[g]){ gruppi[g] = document.createElement('optgroup'); gruppi[g].label = g; cs.appendChild(gruppi[g]); }
       var o = document.createElement('option');
       o.value = k; o.textContent = CATS[k].e + '  ' + CATS[k].l;
-      cs.appendChild(o);
+      gruppi[g].appendChild(o);
     });
     Object.keys(PER).forEach(function(k){
       var o = document.createElement('option');
@@ -1012,7 +1127,23 @@
   /* =========================================================
      BACKUP: INVIA, SCARICA, RIPRISTINA
      ========================================================= */
+  function sblocca(){
+    var msg = $('lic-msg'), c = $('lic').value;
+    if(normCode(c).length !== 12){ msg.textContent = 'Il codice ha 12 caratteri, per esempio ABCD-EFGH-JKLM.'; return; }
+    msg.textContent = 'Controllo il codice\u2026';
+    checkCode(c).then(function(ok){
+      if(ok === null){ msg.textContent = 'Questo browser non riesce a controllare il codice. Apri l\u2019app dal suo indirizzo internet e riprova.'; return; }
+      if(!ok){ msg.textContent = 'Codice non valido. Controlla di averlo scritto giusto.'; return; }
+      $('lic').value = ''; msg.textContent = '';
+      setPro(c);
+      toast('Backup sbloccato.');
+    });
+  }
+  $('lic-ok').onclick = sblocca;
+  $('lic').addEventListener('keydown', function(ev){ if(ev.key === 'Enter'){ ev.preventDefault(); sblocca(); } });
+
   $('send-backup').onclick = function(){
+    if(!pro) return;
     var msg = $('backup-msg');
     var f = null;
     try{ f = backupFile(); }catch(e){}
@@ -1037,6 +1168,7 @@
   };
 
   $('dl-backup').onclick = function(){
+    if(!pro) return;
     var ok = saveBlob(new Blob([backupJson()], {type:'application/json'}), backupName());
     $('backup-msg').textContent = ok
       ? 'Backup scaricato: ' + backupName()
@@ -1051,8 +1183,7 @@
     var r = new FileReader();
     r.onload = function(){
       try{
-        var list = vociDa(String(r.result));
-        if(applica(list, msg)) toast('Backup ripristinato.');
+        if(applica(leggiBackup(String(r.result)), msg)) toast('Backup ripristinato.');
       }catch(e){
         msg.textContent = 'Il file non \u00e8 un backup valido.';
       }
@@ -1063,6 +1194,7 @@
   };
 
   $('copy-backup').onclick = function(){
+    if(!pro) return;
     var btn = this, ta = $('backup');
     function done(ok){
       btn.textContent = ok ? 'Copiato ✓' : 'Seleziona e copia a mano';
@@ -1076,8 +1208,7 @@
   $('do-restore').onclick = function(){
     var msg = $('restore-msg');
     try{
-      var list = vociDa($('restore').value);
-      if(applica(list, msg)){ $('restore').value = ''; toast('Backup ripristinato.'); }
+      if(applica(leggiBackup($('restore').value), msg)){ $('restore').value = ''; toast('Backup ripristinato.'); }
     }catch(e){
       msg.textContent = 'Il testo incollato non \u00e8 un backup valido.';
     }
@@ -1113,6 +1244,7 @@
 
   load();
   render();
+  loadLic();
 })();
 </script>
 </body>

@@ -202,6 +202,8 @@
   }
   footer{margin-top:24px;text-align:center;font-size:12px;color:var(--ink-3);line-height:1.5}
   footer .owner{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+  footer .legal{margin-top:8px}
+  footer a{color:var(--ink-3)}
 </style>
 </head>
 <body>
@@ -365,6 +367,8 @@
     piede: 'I tuoi dati restano su questo telefono.',
     // dove si compra il codice che sblocca il backup
     acquisto: 'Per avere il codice di sblocco rivolgiti a Novatech (i dati sono in fondo alla pagina) e comunica il numero di questo telefono.',
+    // pagine legali, mostrate in fondo alla pagina
+    legali: [{t:'Privacy', u:'privacy.html'}, {t:'Condizioni d\u2019uso', u:'condizioni.html'}],
     // proprietario dell'app, mostrato in fondo alla pagina
     proprieta: [
       'Promemo \u00e8 di propriet\u00e0 di Novatech di Porcino Danilo',
@@ -861,6 +865,13 @@
     var pr = el('div', 'owner');
     APP.proprieta.forEach(function(r){ pr.appendChild(el('div', null, r)); });
     ft.appendChild(pr);
+    var lg = el('div', 'legal');
+    APP.legali.forEach(function(x, i){
+      if(i) lg.appendChild(document.createTextNode(' \u00B7 '));
+      var a = el('a', null, x.t); a.href = x.u;
+      lg.appendChild(a);
+    });
+    ft.appendChild(lg);
 
     var urg = 0, m30 = 0;
     items.forEach(function(it){

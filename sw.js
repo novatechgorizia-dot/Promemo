@@ -1,7 +1,7 @@
 /* Promemo: fa funzionare l'app anche senza internet.
    Con internet prende sempre la versione piu' recente; senza, usa la copia salvata. */
-var CACHE = 'promemo-v1';
-var FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
+var CACHE = 'promemo-v2';
+var FILES = ['./', 'index.html', 'privacy.html', 'condizioni.html', 'manifest.webmanifest', 'icon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', function(e){
   e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(FILES); }).then(function(){ return self.skipWaiting(); }));
